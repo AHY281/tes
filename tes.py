@@ -128,52 +128,69 @@ def main():
             print(f"【阶段1/5】寻找未评项目")
             print(f"{'='*60}")
             
+            # 重置状态，每次循环开始先找一遍 wp
             wp_pos = find_image("wp.png", ["top_right", "bottom_right"], confidence=0.8, grayscale=True)
+            n_pos = None
             
+            # 如果一开始就没找到 wp，开始滚动侦查
             if wp_pos is None:
-                print("\n【提示】未找到wp.png，尝试下滑...")
-                for i in range(3):
+                print("\n【提示】未找到wp.png，开始下滑侦查...")
+                
+                while True:
                     if check_exit():
                         print("\n【退出】用户中断，脚本终止")
                         sys.exit(0)
                         
-                    print(f"\n--- 下滑第{i+1}次 ---")
-                    scroll_down(300)
+                    print(f"\n--- 执行一次深度下滑 (800像素) ---")
+                    scroll_down(800)
+                    
+                    print("【侦查】下滑后，重新寻找 wp.png 和 n.png...")
                     wp_pos = find_image("wp.png", ["top_right", "bottom_right"], confidence=0.8, grayscale=True)
-                    if wp_pos is not None:
-                        break
-                
-                if wp_pos is None:
-                    print("\n【提示】仍未找到wp.png，尝试找n.png翻页...")
                     n_pos = find_image("n.png", ["bottom_center"], confidence=0.8, grayscale=True)
-                    if n_pos is None:
-                        print("【提示】也未找到n.png，可能已全部评完")
+                    
+                    if wp_pos is not None:
+                        print("【侦查结果】找到 wp.png！停止下滑。")
+                        break
+                        
+                    if n_pos is not None:
+                        print("【侦查结果】找到 n.png！准备翻页。")
                         break
                     
-                    page_clicks += 1
-                    print(f"\n【操作】点击n.png中心 ({page_clicks}/{MAX_PAGE_CLICKS})")
-                    pyautogui.click(n_pos[0], n_pos[1])
-                    print("【等待】等待2秒...")
-                    time.sleep(2)
-                    print("【操作】上滚200像素 (第1次)")
-                    pyautogui.scroll(200)
-                    time.sleep(0.5)
-                    print("【操作】上滚200像素 (第2次)")
-                    pyautogui.scroll(200)
-                    time.sleep(0.5)
-                    
-                    wp_pos = find_image("wp.png", ["top_right", "bottom_right"], confidence=0.8, grayscale=True)
-                    if wp_pos is None:
-                        continue
+                    print("【侦查结果】两图皆未发现，继续下滑...")
             
-            click_x = wp_pos[0] + 190
-            click_y = wp_pos[1]
-            print(f"\n【操作】点击评价按钮 (wp右移190px): ({click_x}, {click_y})")
-            pyautogui.click(click_x, click_y)
-            time.sleep(0.5)
-            pyautogui.click(click_x, click_y)
-            print("【等待】等待评价页面加载...")
-            time.sleep(1.5)
+            # ==================== 处理找到 wp 的分支 ====================
+            if wp_pos is not None:
+                click_x = wp_pos[0] + 190
+                click_y = wp_pos[1]
+                print(f"\n【操作】点击评价按钮 (wp右移190px): ({click_x}, {click_y})")
+                pyautogui.click(click_x, click_y)
+                time.sleep(0.5)
+                pyautogui.click(click_x, click_y)
+                print("【等待】等待评价页面加载...")
+                time.sleep(1.5)
+                
+            # ==================== 处理找到 n 的分支 (翻页) ====================
+            elif n_pos is not None:
+                page_clicks += 1
+                print(f"\n【操作】点击n.png中心 ({page_clicks}/{MAX_PAGE_CLICKS})")
+                pyautogui.click(n_pos[0], n_pos[1])
+                print("【等待】等待2秒...")
+                time.sleep(2)
+                
+                print("【操作】上滚200像素 (第1次)")
+                pyautogui.scroll(200)
+                time.sleep(0.5)
+                print("【操作】上滚200像素 (第2次)")
+                pyautogui.scroll(200)
+                time.sleep(0.5)
+                
+                print("【翻页完成】返回顶部，重新寻找 wp.png...")
+                continue
+            
+            # ==================== 如果两者都始终没找到 ====================
+            else:
+                print("\n【提示】经过多次下滑，wp.png 和 n.png 均未找到，可能已全部评完")
+                break
             
             print(f"\n{'='*60}")
             print(f"【阶段2/5】填写评分 (共5个)")
