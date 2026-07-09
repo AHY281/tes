@@ -99,7 +99,7 @@ def scroll_down(pixels=300):
 
 def main():
     print("=" * 60)
-    print("       自动评教脚本 v2.2 (图像识别版)")
+    print("       自动评教脚本 v2.3 (图像识别版)")
     print("=" * 60)
     print(f"【配置】屏幕分辨率: {w}x{h}")
     print(f"【配置】图片目录: {IMAGE_DIR}")
@@ -128,11 +128,9 @@ def main():
             print(f"【阶段1/5】寻找未评项目")
             print(f"{'='*60}")
             
-            # 重置状态，每次循环开始先找一遍 wp
             wp_pos = find_image("wp.png", ["top_right", "bottom_right"], confidence=0.8, grayscale=True)
             n_pos = None
             
-            # 如果一开始就没找到 wp，开始滚动侦查
             if wp_pos is None:
                 print("\n【提示】未找到wp.png，开始下滑侦查...")
                 
@@ -158,7 +156,6 @@ def main():
                     
                     print("【侦查结果】两图皆未发现，继续下滑...")
             
-            # ==================== 处理找到 wp 的分支 ====================
             if wp_pos is not None:
                 click_x = wp_pos[0] + 190
                 click_y = wp_pos[1]
@@ -169,25 +166,25 @@ def main():
                 print("【等待】等待评价页面加载...")
                 time.sleep(1.5)
                 
-            # ==================== 处理找到 n 的分支 (翻页) ====================
             elif n_pos is not None:
                 page_clicks += 1
                 print(f"\n【操作】点击n.png中心 ({page_clicks}/{MAX_PAGE_CLICKS})")
                 pyautogui.click(n_pos[0], n_pos[1])
-                print("【等待】等待2秒...")
-                time.sleep(2)
                 
-                print("【操作】上滚200像素 (第1次)")
-                pyautogui.scroll(200)
+                print("【等待】等待3秒...")
+                time.sleep(3)     # 改成了 3 秒
+                
+                print("【操作】上滚1000像素 (第1次)")
+                pyautogui.scroll(1000)
                 time.sleep(0.5)
-                print("【操作】上滚200像素 (第2次)")
-                pyautogui.scroll(200)
+                
+                print("【操作】上滚1000像素 (第2次)")
+                pyautogui.scroll(1000)
                 time.sleep(0.5)
                 
                 print("【翻页完成】返回顶部，重新寻找 wp.png...")
                 continue
             
-            # ==================== 如果两者都始终没找到 ====================
             else:
                 print("\n【提示】经过多次下滑，wp.png 和 n.png 均未找到，可能已全部评完")
                 break
@@ -284,17 +281,26 @@ def main():
                 
                 print("【等待】等待1秒...")
                 time.sleep(1)
+                
                 print(f"【找图】查找d.png...")
                 d_pos = find_image("d.png", ["bottom_center"], confidence=0.8, grayscale=True)
+                
+                if d_pos is None:
+                    print("【提示】第一次未找到d.png，等待2秒后重试...")
+                    time.sleep(2)
+                    
+                    d_pos = find_image("d.png", ["bottom_center"], confidence=0.8, grayscale=True)
+                    
+                    if d_pos is None:
+                        result = show_alert("评教失败", "找不到d.png!\n\n等待2秒后仍未找到。\n\n选择:\n确定 - 手动提交后继续\n取消 - 结束脚本")
+                        if result != 1:
+                            print("【用户选择】结束脚本")
+                            sys.exit(0)
+                        input("【提示】请手动点击确定按钮，完成后按回车键继续...")
+
                 if d_pos is not None:
                     print(f"【操作】点击d.png: {d_pos}")
                     pyautogui.click(d_pos[0], d_pos[1])
-                else:
-                    result = show_alert("评教失败", "找不到d.png!\n\n选择:\n确定 - 手动提交后继续\n取消 - 结束脚本")
-                    if result != 1:
-                        print("【用户选择】结束脚本")
-                        sys.exit(0)
-                    input("【提示】请手动点击确定按钮，完成后按回车键继续...")
                     
                 print("【等待】等待2秒...")
                 time.sleep(2)
